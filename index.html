@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Hallenturnier – Spielplan und Tabelle</title>
+
+  <style>
+    :root {
+      --navy: #14284b;
+      --blue: #244c89;
+      --light: #f2f5fa;
+      --border: #dce4ee;
+      --green: #d9f5e5;
+      --yellow: #fff2c6;
+      --text: #202b3c;
+      --muted: #5d6d81;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--light);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   Arial, sans-serif;
+      line-height: 1.45;
+    }
+
+    header {
+      padding: 34px 18px;
+      background: linear-gradient(135deg, #14284b, #315d9b);
+      color: white;
+      text-align: center;
+    }
+
+    header p {
+      margin: 5px 0;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(1.8rem, 6vw, 2.8rem);
+    }
+
+    main {
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 20px 14px 50px;
+    }
+
+    section {
+      margin-bottom: 22px;
+      padding: 20px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 4px 18px rgba(20, 40, 75, 0.05);
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      color: var(--navy);
+      font-size: 1.3rem;
+    }
+
+    .info {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .connection {
+      margin-bottom: 15px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .connection.error {
+      color: #a32626;
+      font-weight: bold;
+    }
+
+    .game {
+      padding: 14px;
+      margin: 9px 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .game.current {
+      background: var(--green);
+      border-color: #66b88c;
+    }
+
+    .game.next {
+      background: var(--yellow);
+      border-color: #e4c467;
+    }
+
+    .game-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .status {
+      font-weight: bold;
+      color: var(--navy);
+    }
+
+    .pairing {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .team {
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+
+    .team.away {
+      text-align: right;
+    }
+
+    .score {
+      min-width: 60px;
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--navy);
+    }
+
+    .break {
+      margin: 16px 0;
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+      background: #fff2d4;
+      color: #765000;
+      font-weight: bold;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      padding: 10px 6px;
+      text-align: center;
+      border-bottom: 1px solid #e9edf3;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    th.team-name, td.team-name {
+      text-align: left;
+      white-space: normal;
+      min-width: 125px;
+    }
+
+    td.points {
+      font-weight: 800;
+      color: var(--blue);
+    }
+
+    .admin-controls {
+      display: none;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(20, 40, 75, 0.15);
+    }
+
+    body.admin .admin-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input {
+      padding: 9px;
+      border: 1px solid #b9c8d9;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    input[type="number"] {
+      width: 65px;
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      width: min(100%, 330px);
+    }
+
+    button {
+      padding: 9px 13px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--blue);
+      color: white;
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #e8edf5;
+      color: var(--navy);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    form {
+      display: grid;
+      justify-items: start;
+      gap: 10px;
+    }
+
+    details summary {
+      cursor: pointer;
+      color: var(--blue);
+      font-weight: 650;
+    }
+
+    .small {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    #admin-message {
+      margin: 10px 0 0;
+      color: #a32626;
+      font-size: 0.9rem;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+  <header>
+    <p>⚽ HALLENTURNIER</p>
+    <h1>Spieltag im Überblick</h1>
+    <p>Sonntag, 22. November 2026 · 14:00–16:44 Uhr</p>
+    <p>5 Mannschaften · 10 Spiele</p>
+  </header>
+
+  <main>
+    <div id="connection" class="connection">
+      Ergebnisse werden geladen …
+    </div>
+
+    <section>
+      <h2>📅 Spielplan & Ergebnisse</h2>
+      <p class="info">
+        Grün: aktuelles Spiel · Gelb: nächstes Spiel
+      </p>
+
+      <div id="games"></div>
+    </section>
+
+    <section>
+      <h2>🏆 Aktuelle Tabelle</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pl.</th>
+              <th class="team-name">Mannschaft</th>
+              <th>Sp.</th>
+              <th>Tore</th>
+              <th>Diff.</th>
+              <th>Pkt.</th>
+            </tr>
+          </thead>
+          <tbody id="standings"></tbody>
+        </table>
+      </div>
+
+      <p class="small">
+        Sortierung: Punkte, Tordifferenz, erzielte Tore.
+        Bei weiterem Gleichstand alphabetisch.
+      </p>
+    </section>
+
+    <section>
+      <details>
+        <summary>🔒 Admin-Bereich</summary>
+
+        <div id="logged-out">
+          <p class="small">
+            Nur für die Turnierleitung.
+          </p>
+
+          <form id="login-form">
+            <input
+              id="email"
+              type="email"
+              placeholder="E-Mail-Adresse"
+              autocomplete="username"
+              required
+            >
+
+            <input
+              id="password"
+              type="password"
+              placeholder="Passwort"
+              autocomplete="current-password"
+              required
+            >
+
+            <button type="submit">Anmelden</button>
+          </form>
+        </div>
+
+        <div id="logged-in" hidden>
+          <p>
+            Du bist angemeldet. Die Eingabefelder stehen
+            direkt unter den Spielen.
+          </p>
+
+          <button id="logout" class="secondary" type="button">
+            Abmelden
+          </button>
+        </div>
+
+        <p id="admin-message" role="status"></p>
+      </details>
+    </section>
+  </main>
+
+  <script>
+    // ==================================================
+    // HIER DIE BEIDEN SUPABASE-ANGABEN EINTRAGEN
+    // ==================================================
+
+    const SUPABASE_URL = "https://dmjixcxnfzhefdrqwlwb.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_cyDQJtecoPqLYpqTychaxA_cbXBqbuG";
+
+    // ==================================================
+
+    const teams = [
+      "Bovender SV 1",
+      "Bovender SV 2",
+      "SC Hainberg 2",
+      "Sparta Göttingen",
+      "SVG Göttingen 3"
+    ];
+
+    const matches = [
+      { id: 1, time: "14:00", home: "Bovender SV 1", guest: "Bovender SV 2" },
+      { id: 2, time: "14:15", home: "Sparta Göttingen", guest: "SVG Göttingen 3" },
+      { id: 3, time: "14:30", home: "Bovender SV 2", guest: "SC Hainberg 2" },
+      { id: 4, time: "14:45", home: "Bovender SV 1", guest: "SVG Göttingen 3" },
+      { id: 5, time: "15:00", home: "SC Hainberg 2", guest: "Sparta Göttingen" },
+      { id: 6, time: "15:32", home: "SVG Göttingen 3", guest: "Bovender SV 2" },
+      { id: 7, time: "15:47", home: "Sparta Göttingen", guest: "Bovender SV 1" },
+      { id: 8, time: "16:02", home: "SC Hainberg 2", guest: "SVG Göttingen 3" },
+      { id: 9, time: "16:17", home: "Bovender SV 2", guest: "Sparta Göttingen" },
+      { id: 10, time: "16:32", home: "SC Hainberg 2", guest: "Bovender SV 1" }
+    ];
+
+    // Am Turniertag gilt in Deutschland MEZ = UTC+1.
+    function startTime(match) {
+      return new Date(`2026-11-22T${match.time}:00+01:00`).getTime();
+    }
+
+    const results = new Map();
+    const gamesElement = document.getElementById("games");
+    const connectionElement = document.getElementById("connection");
+    const adminMessage = document.getElementById("admin-message");
+
+    let client = null;
+    let isAdmin = false;
+
+    function showConnection(text, isError = false) {
+      connectionElement.textContent = text;
+      connectionElement.classList.toggle("error", isError);
+    }
+
+    function buildGames() {
+      gamesElement.innerHTML = "";
+
+      matches.forEach((match, index) => {
+        if (index === 5) {
+          const pause = document.createElement("div");
+          pause.className = "break";
+          pause.textContent = "☕ PAUSE · 15:12–15:32 Uhr";
+          gamesElement.appendChild(pause);
+        }
+
+        const card = document.createElement("div");
+        card.className = "game";
+        card.id = `game-${match.id}`;
+
+        // Mannschaftsnamen und Zeiten stammen aus der festen Liste oben.
+        card.innerHTML = `
+          <div class="game-top">
+            <span>Spiel ${match.id} · ${match.time} Uhr</span>
+            <span class="status"></span>
+          </div>
+
+          <div class="pairing">
+            <div class="team">${match.home}</div>
+            <div class="score">– : –</div>
+            <div class="team away">${match.guest}</div>
+          </div>
+
+          <div class="admin-controls">
+            <input
+              class="home-goals"
+              type="number"
+              min="0"
+              max="99"
+              step="1"
+              placeholder="Heim"
+              aria-label="Tore Heimmannschaft"
+            >
+            <span>:</span>
+            <input
+              class="away-goals"
+              type="number"
+              min="0"
+              max="99"
+              step="1"
+              placeholder="Gast"
+              aria-label="Tore Gastmannschaft"
+            >
+            <button class="save" type="button">Speichern</button>
+            <button class="clear secondary" type="button">Löschen</button>
+          </div>
+        `;
+
+        const controls = card.querySelector(".admin-controls");
+
+        controls.querySelectorAll("input").forEach(input => {
+          input.addEventListener("input", () => {
+            controls.dataset.dirty = "true";
+          });
+        });
+
+        card.querySelector(".save").addEventListener("click", () => {
+          saveResult(match.id, false);
+        });
+
+        card.querySelector(".clear").addEventListener("click", () => {
+          saveResult(match.id, true);
+        });
+
+        gamesElement.appendChild(card);
+      });
+    }
+
+    function renderResults() {
+      matches.forEach(match => {
+        const card = document.getElementById(`game-${match.id}`);
+        const row = results.get(match.id);
+        const score = card.querySelector(".score");
+        const controls = card.querySelector(".admin-controls");
+
+        const complete =
+          row &&
+          row.home_goals !== null &&
+          row.away_goals !== null;
+
+        score.textContent = complete
+          ? `${row.home_goals} : ${row.away_goals}`
+          : "– : –";
+
+        // Nicht überschreiben, während der Admin gerade etwas eintippt.
+        if (controls.dataset.dirty !== "true") {
+          card.querySelector(".home-goals").value =
+            complete ? row.home_goals : "";
+
+          card.querySelector(".away-goals").value =
+            complete ? row.away_goals : "";
+        }
+      });
+    }
+
+    function renderStandings() {
+      const stats = new Map();
+
+      teams.forEach(name => {
+        stats.set(name, {
+          name,
+          played: 0,
+          scored: 0,
+          conceded: 0,
+          points: 0
+        });
+      });
+
+      matches.forEach(match => {
+        const row = results.get(match.id);
+
+        if (
+          !row ||
+          row.home_goals === null ||
+          row.away_goals === null
+        ) {
+          return;
+        }
+
+        const home = stats.get(match.home);
+        const guest = stats.get(match.guest);
+
+        home.played++;
+        guest.played++;
+
+        home.scored += row.home_goals;
+        home.conceded += row.away_goals;
+
+        guest.scored += row.away_goals;
+        guest.conceded += row.home_goals;
+
+        if (row.home_goals > row.away_goals) {
+          home.points += 3;
+        } else if (row.home_goals < row.away_goals) {
+          guest.points += 3;
+        } else {
+          home.points++;
+          guest.points++;
+        }
+      });
+
+      const sorted = [...stats.values()].sort((a, b) => {
+        const diffA = a.scored - a.conceded;
+        const diffB = b.scored - b.conceded;
+
+        return (
+          b.points - a.points ||
+          diffB - diffA ||
+          b.scored - a.scored ||
+          a.name.localeCompare(b.name, "de")
+        );
+      });
+
+      const tbody = document.getElementById("standings");
+      tbody.innerHTML = "";
+
+      sorted.forEach((team, index) => {
+        const row = document.createElement("tr");
+        const difference = team.scored - team.conceded;
+        const displayDiff = difference > 0
+          ? `+${difference}`
+          : String(difference);
+
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td class="team-name">${team.name}</td>
+          <td>${team.played}</td>
+          <td>${team.scored}:${team.conceded}</td>
+          <td>${displayDiff}</td>
+          <td class="points">${team.points}</td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    }
+
+    function updateCurrentMatch() {
+      const now = Date.now();
+      let highlighted = null;
+      let label = "";
+
+      // Erst prüfen, ob gerade ein Spiel läuft.
+      for (const match of matches) {
+        const start = startTime(match);
+        const end = start + 12 * 60 * 1000;
+
+        if (now >= start && now < end) {
+          highlighted = match.id;
+          label = "⚽ Läuft";
+          break;
+        }
+      }
+
+      // Sonst das nächste Spiel markieren.
+      if (highlighted === null) {
+        const next = matches.find(match => now < startTime(match));
+
+        if (next) {
+          highlighted = next.id;
+          label = "🔜 Als Nächstes";
+        }
+      }
+
+      matches.forEach(match => {
+        const card = document.getElementById(`game-${match.id}`);
+        const active = match.id === highlighted;
+
+        card.classList.toggle("current", active && label === "⚽ Läuft");
+        card.classList.toggle("next", active && label === "🔜 Als Nächstes");
+        card.querySelector(".status").textContent = active ? label : "";
+      });
+    }
+
+    async function loadResults() {
+      if (!client) return;
+
+      const { data, error } = await client
+        .from("results")
+        .select("id, home_goals, away_goals")
+        .order("id");
+
+      if (error) {
+        showConnection(
+          "Ergebnisse konnten nicht aktualisiert werden. Internetverbindung prüfen.",
+          true
+        );
+        console.error(error);
+        return;
+      }
+
+      if (!data || data.length !== 10) {
+        showConnection(
+          "Der Ergebnisspeicher ist unvollständig. Bitte die Einrichtung prüfen.",
+          true
+        );
+        return;
+      }
+
+      results.clear();
+      data.forEach(row => results.set(row.id, row));
+
+      renderResults();
+      renderStandings();
+
+      const time = new Date().toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+
+      showConnection(`● Ergebnisse aktualisiert um ${time} Uhr`);
+    }
+
+    async function saveResult(id, clear) {
+      if (!client || !isAdmin) return;
+
+      const card = document.getElementById(`game-${id}`);
+      const controls = card.querySelector(".admin-controls");
+      const homeInput = card.querySelector(".home-goals");
+      const awayInput = card.querySelector(".away-goals");
+
+      let home = null;
+      let away = null;
+
+      if (clear) {
+        if (!confirm(`Ergebnis von Spiel ${id} wirklich löschen?`)) {
+          return;
+        }
+      } else {
+        if (homeInput.value === "" || awayInput.value === "") {
+          alert("Bitte beide Torzahlen eingeben.");
+          return;
+        }
+
+        home = Number(homeInput.value);
+        away = Number(awayInput.value);
+
+        if (
+          !Number.isInteger(home) ||
+          !Number.isInteger(away) ||
+          home < 0 || home > 99 ||
+          away < 0 || away > 99
+        ) {
+          alert("Bitte ganze Torzahlen zwischen 0 und 99 eingeben.");
+          return;
+        }
+      }
+
+      const buttons = controls.querySelectorAll("button");
+      buttons.forEach(button => button.disabled = true);
+
+      try {
+        const { data, error } = await client
+          .from("results")
+          .update({
+            home_goals: home,
+            away_goals: away
+          })
+          .eq("id", id)
+          .select();
+
+        if (error) throw error;
+
+        if (!data || data.length !== 1) {
+          throw new Error(
+            "Das Ergebnis wurde nicht gespeichert. Admin-Rechte prüfen."
+          );
+        }
+
+        controls.dataset.dirty = "false";
+        await loadResults();
+      } catch (error) {
+        alert(`Speichern fehlgeschlagen: ${error.message}`);
+      } finally {
+        buttons.forEach(button => button.disabled = false);
+      }
+    }
+
+    function showAdmin(loggedIn) {
+      isAdmin = loggedIn;
+      document.body.classList.toggle("admin", loggedIn);
+      document.getElementById("logged-out").hidden = loggedIn;
+      document.getElementById("logged-in").hidden = !loggedIn;
+    }
+
+    async function setup() {
+      buildGames();
+      renderStandings();
+      updateCurrentMatch();
+
+      setInterval(updateCurrentMatch, 1000);
+
+      if (
+        !window.supabase ||
+        SUPABASE_URL.includes("HIER-DEINE") ||
+        SUPABASE_KEY.includes("HIER-DEIN")
+      ) {
+        showConnection(
+          "Einrichtung unvollständig: Supabase-Angaben oder Bibliothek prüfen.",
+          true
+        );
+        return;
+      }
+
+      try {
+        client = window.supabase.createClient(
+          SUPABASE_URL,
+          SUPABASE_KEY
+        );
+
+        const { data } = await client.auth.getSession();
+        showAdmin(Boolean(data.session));
+
+        await loadResults();
+
+        setInterval(loadResults, 15000);
+
+        // Aktualisieren, wenn ein Besucher zur Seite zurückkehrt.
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) {
+            updateCurrentMatch();
+            loadResults();
+          }
+        });
+      } catch (error) {
+        showConnection(
+          "Verbindung konnte nicht eingerichtet werden. Einstellungen prüfen.",
+          true
+        );
+        console.error(error);
+      }
+    }
+
+    document.getElementById("login-form").addEventListener(
+      "submit",
+      async event => {
+        event.preventDefault();
+
+        if (!client) {
+          adminMessage.textContent = "Keine Verbindung zu Supabase.";
+          return;
+        }
+
+        adminMessage.textContent = "";
+
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+
+        const { error } = await client.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) {
+          adminMessage.textContent =
+            "Anmeldung fehlgeschlagen. E-Mail und Passwort prüfen.";
+          return;
+        }
+
+        document.getElementById("password").value = "";
+        showAdmin(true);
+      }
+    );
+
+    document.getElementById("logout").addEventListener(
+      "click",
+      async () => {
+        if (!client) return;
+
+        const { error } = await client.auth.signOut();
+
+        if (error) {
+          adminMessage.textContent = "Abmeldung fehlgeschlagen.";
+          return;
+        }
+
+        document.querySelectorAll(".admin-controls").forEach(control => {
+          control.dataset.dirty = "false";
+        });
+
+        adminMessage.textContent = "";
+        showAdmin(false);
+        renderResults();
+      }
+    );
+
+    setup();
+  </script>
+</body>
+</html>
