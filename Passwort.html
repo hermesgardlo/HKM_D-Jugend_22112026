@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Passwort zurücksetzen</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f5fa;
+      color: #14284b;
+      padding: 30px 15px;
+    }
+
+    main {
+      max-width: 420px;
+      margin: 30px auto;
+      padding: 25px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 18px rgba(20, 40, 75, 0.1);
+    }
+
+    input, button {
+      box-sizing: border-box;
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 12px 0;
+      font: inherit;
+      border-radius: 8px;
+    }
+
+    input {
+      border: 1px solid #b9c8d9;
+    }
+
+    button {
+      border: 0;
+      background: #244c89;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+    }
+
+    #message {
+      line-height: 1.5;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+  <main>
+    <h1>🔒 Neues Passwort</h1>
+
+    <p id="message">
+      Wiederherstellungslink wird geprüft …
+    </p>
+
+    <form id="reset-form" hidden>
+      <label for="password">Neues Passwort</label>
+      <input
+        id="password"
+        type="password"
+        autocomplete="new-password"
+        minlength="8"
+        required
+      >
+
+      <label for="repeat">Passwort wiederholen</label>
+      <input
+        id="repeat"
+        type="password"
+        autocomplete="new-password"
+        minlength="8"
+        required
+      >
+
+      <button id="save-button" type="submit">
+        Neues Passwort speichern
+      </button>
+    </form>
+
+    <p>
+      <a href="./">Zurück zur Turnierseite</a>
+    </p>
+  </main>
+
+  <script>
+    // Dieselben Angaben wie in deiner index.html eintragen:
+    const SUPABASE_URL = "https://dmjixcxnfzhefdrqwlwb.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_cyDQJtecoPqLYpqTychaxA_cbXBqbuG";
+
+    const message = document.getElementById("message");
+    const form = document.getElementById("reset-form");
+    const saveButton = document.getElementById("save-button");
+
+    async function start() {
+      // Das Passwortformular nur nach einem Recovery-Link anzeigen.
+      const parameters = new URLSearchParams(
+        window.location.hash.substring(1)
+      );
+
+      if (parameters.get("type") !== "recovery") {
+        message.textContent =
+          "Bitte öffne diese Seite über den aktuellen " +
+          "Passwort-Wiederherstellungslink aus deiner E-Mail.";
+        return;
+      }
+
+      if (
+        !window.supabase ||
+        SUPABASE_URL.includes("HIER-DEINE") ||
+        SUPABASE_KEY.includes("HIER-DEIN")
+      ) {
+        message.textContent =
+          "Die Seite ist noch nicht vollständig eingerichtet.";
+        return;
+      }
+
+      try {
+        const client = window.supabase.createClient(
+          SUPABASE_URL,
+          SUPABASE_KEY
+        );
+
+        // Supabase verarbeitet den Link und stellt die Sitzung her.
+        const { data, error } = await client.auth.getSession();
+
+        if (error || !data.session) {
+          message.textContent =
+            "Der Link ist ungültig oder abgelaufen. " +
+            "Bitte fordere eine neue Wiederherstellungs-E-Mail an.";
+          return;
+        }
+
+        message.textContent =
+          "Bitte gib dein neues Passwort zweimal ein.";
+        form.hidden = false;
+
+        form.addEventListener("submit", async event => {
+          event.preventDefault();
+
+          const password = document.getElementById("password").value;
+          const repeat = document.getElementById("repeat").value;
+
+          if (password !== repeat) {
+            message.textContent =
+              "Die beiden Passwörter stimmen nicht überein.";
+            return;
+          }
+
+          saveButton.disabled = true;
+
+          try {
+            const { error: updateError } =
+              await client.auth.updateUser({ password });
+
+            if (updateError) {
+              message.textContent =
+                "Das Passwort konnte nicht geändert werden: " +
+                updateError.message;
+              saveButton.disabled = false;
+              return;
+            }
+
+            form.reset();
+            form.hidden = true;
+
+            // Die Wiederherstellungssitzung auf diesem Gerät beenden.
+            await client.auth.signOut({ scope: "local" });
+
+            message.textContent =
+              "Das Passwort wurde geändert. " +
+              "Du kannst dich jetzt auf der Turnierseite anmelden.";
+          } catch (error) {
+            message.textContent =
+              "Ein Fehler ist aufgetreten. Bitte versuche es erneut.";
+            saveButton.disabled = false;
+          }
+        });
+      } catch (error) {
+        message.textContent =
+          "Die Verbindung konnte nicht hergestellt werden. " +
+          "Bitte prüfe die Einrichtung und die Internetverbindung.";
+      }
+    }
+
+    start();
+  </script>
+</body>
+</html>
